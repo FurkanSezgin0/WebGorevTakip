@@ -1,0 +1,41 @@
+﻿@model List<anbanBoardApp.Models.Sprint>
+@{ ViewData["Title"] = "Sprintler (Koşular)"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="text-muted small">Kayıtlı @Model.Count sprint bulunuyor.</div>
+    <button class="btn btn-primary btn-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#yeniSprintModal">+ Yeni Sprint</button>
+</div>
+
+<div class="row">
+    @foreach (var sprint in Model) {
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm" style="border-radius:12px;">
+                <div class="card-body p-4 text-center">
+                    <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 50px; height: 50px; background: #e0e7ff; color: #4f46e5; font-size: 1.5rem;">🏃</div>
+                    <h5 class="fw-bold text-dark">@sprint.Ad</h5>
+                    <span class="badge bg-light text-secondary border">📁 @sprint.ProjeAdi</span>
+                </div>
+                <div class="card-footer bg-white border-top text-center p-2" style="border-radius: 0 0 12px 12px;">
+                    <form action="/Sprintler/Sil" method="post" onsubmit="return confirm('Bu sprinti silmek istediğinize emin misiniz?');">
+                        <input type="hidden" name="id" value="@sprint.Id" />
+                        <button type="submit" class="btn btn-sm text-danger fw-bold border-0">Sil</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- YENİ SPRINT MODALI -->
+<div class="modal fade" id="yeniSprintModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content border-0 shadow" style="border-radius: 12px;">
+    <form action="/Sprintler/Ekle" method="post">
+        <div class="modal-header bg-light border-0"><h5 class="modal-title fw-bold">🏃 Yeni Sprint</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body p-4">
+            <div class="mb-3"><label class="form-label fw-bold">Bağlı Proje</label><select name="ProjeId" class="form-select">
+                @foreach (var p in ViewBag.Projeler) { <option value="@p.Value">@p.Text</option> }
+            </select></div>
+            <div class="mb-3"><label class="form-label fw-bold">Sprint Adı</label><input type="text" name="Ad" class="form-control" placeholder="Örn: Ağustos Koşusu 1" required /></div>
+        </div>
+        <div class="modal-footer border-0 bg-light"><button type="submit" class="btn btn-primary px-4 fw-bold">Oluştur</button></div>
+    </form>
+</div></div></div>

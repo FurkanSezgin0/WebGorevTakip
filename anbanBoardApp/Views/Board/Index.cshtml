@@ -1,0 +1,587 @@
+﻿@model List<anbanBoardApp.Models.Gorev>
+@{
+    ViewData["Title"] = "Görevler";
+    var kullaniciListesi = ViewBag.Kullanicilar as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>;
+    var projeListesi = ViewBag.Projeler as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>;
+    var sprintListesi = ViewBag.SprintlerBag as List<anbanBoardApp.Models.Sprint>;
+}
+
+<style>
+    .kanban-container {
+        display: flex;
+        overflow-x: auto;
+        gap: 15px;
+        padding-bottom: 20px;
+        align-items: flex-start;
+        min-height: 70vh;
+        width: 100%;
+    }
+
+    .kanban-column {
+        background-color: #f8fafc;
+        border-radius: 8px;
+        padding: 12px;
+        min-width: 270px;
+        max-width: 270px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .kanban-card {
+        background-color: white;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        cursor: pointer;
+        border: 1px solid #f1f5f9;
+        transition: all 0.2s ease;
+    }
+
+        .kanban-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            border-color: #cbd5e1;
+        }
+
+        .kanban-card.kilitli-kart {
+            cursor: default;
+            opacity: 0.7;
+        }
+
+            .kanban-card.kilitli-kart:hover {
+                transform: none;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                border-color: #f1f5f9;
+            }
+
+    .col-title {
+        font-weight: 600;
+        color: #172b4d;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.95rem;
+    }
+
+    .action-btns {
+        opacity: 0;
+        transition: 0.2s;
+    }
+
+    .kanban-card:hover .action-btns {
+        opacity: 1;
+    }
+
+    .priority-badge {
+        font-size: 0.7rem;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    .sutun-item.locked {
+        background-color: #f1f5f9 !important;
+        border-left: 3px solid #64748b;
+    }
+
+    .sutun-item .drag-handle {
+        cursor: grab;
+        font-size: 1.2rem;
+        color: #cbd5e1;
+    }
+
+    .sutun-item.locked .drag-handle {
+        cursor: not-allowed;
+        opacity: 0.3;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="text-muted small">Toplam @Model.Count görev</div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button class="btn btn-light btn-sm border fw-bold text-nowrap" data-bs-toggle="modal" data-bs-target="#sutunModal">⚙️ Sütunları Düzenle</button>
+        <button class="btn btn-primary btn-sm fw-bold px-3 ms-1 text-nowrap" data-bs-toggle="modal" data-bs-target="#yeniGorevModal">+ Yeni Görev</button>
+    </div>
+</div>
+
+<div class="kanban-container">
+    @foreach (var sutun in ViewBag.Sutunlar as List<anbanBoardApp.Models.Sutun>)
+    {
+        <div class="kanban-column" id="@sutun.KodAdi" style="border-top: 4px solid @sutun.Renk;">
+            <div class="col-title">
+                <span><span style="color:@sutun.Renk;">●</span> @sutun.Ad</span>
+                <span class="badge bg-light text-dark border rounded-pill">@Model.Count(g => g.Durum == sutun.KodAdi)</span>
+            </div>
+
+            @foreach (var gorev in Model.Where(g => g.Durum == sutun.KodAdi))
+            {
+                string jsTarih = gorev.TeslimTarihi.HasValue ? gorev.TeslimTarihi.Value.ToString("yyyy-MM-ddTHH:mm") : "";
+                string atanmisIdler = string.Join(",", gorev.AtananKullaniciIdleri);
+                bool bittiMi = (sutun.KodAdi == "Tamamlandi");
+
+                <div class="kanban-card arama-item @(bittiMi ? "kilitli-kart" : "")" data-id="@gorev.Id" onclick="gorevDetayAc(@gorev.Id)">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+
+                       
+                        <div class="d-flex flex-column gap-1">
+                            @if (!string.IsNullOrEmpty(gorev.ProjeAdi))
+                            {
+                                <span class="badge bg-light text-primary border text-start" style="font-size: 0.7rem;">📁 @gorev.ProjeAdi</span>
+                            }
+                            @if (!string.IsNullOrEmpty(gorev.SprintAdi))
+                            {
+                                <span class="badge bg-light text-secondary border text-start" style="font-size: 0.65rem;">🏃 @gorev.SprintAdi</span>
+                            }
+                        </div>
+
+                        <div class="action-btns d-flex gap-2" onclick="event.stopPropagation();">
+                            @if (!bittiMi)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-success p-0 px-2 fw-bold" onclick="gorevTamamla(event, @gorev.Id)" title="Görevi Tamamla">✔ Bitir</button>
+                            }
+                           
+                            <button class="btn btn-sm p-0 border-0" onclick="duzenleModalAc(this)"
+                                    data-id="@gorev.Id" data-baslik="@gorev.Baslik" data-aciklama="@gorev.Aciklama"
+                                    data-durum="@gorev.Durum" data-oncelik="@gorev.Oncelik" data-sure="@gorev.TahminiSure"
+                                    data-projeid="@gorev.ProjeId" data-sprintid="@gorev.SprintId"
+                                    data-atanan="@atanmisIdler" data-teslim="@jsTarih" title="Düzenle">
+                                ✏️
+                            </button>
+
+                            <form action="/Board/GorevSil" method="post" class="m-0 p-0" onsubmit="return confirm('Silinsin mi?');">
+                                <input type="hidden" name="id" value="@gorev.Id" />
+                                <button type="submit" class="btn btn-sm p-0 border-0" title="Sil">🗑️</button>
+                            </form>
+                        </div>
+                    </div>
+                    <h6 class="mb-2 text-dark mt-2" style="font-size:0.95rem;">@gorev.Baslik</h6>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="d-flex gap-2 align-items-center">
+                            @if (gorev.Oncelik == "Kritik")
+                            {
+                                <span class="bg-danger text-white priority-badge">Kritik</span>
+                            }
+                            else if (gorev.Oncelik == "Yüksek")
+                            {
+
+                                <span class="bg-warning text-dark priority-badge">Yüksek</span>
+                            }
+                            else if (gorev.Oncelik == "Düşük")
+                            {
+
+                                <span class="bg-secondary text-white priority-badge">Düşük</span>
+                            }
+                            else
+                            {
+
+                                <span class="bg-info text-white priority-badge">Orta</span>
+                            }
+
+                            @if (gorev.TahminiSure > 0)
+                            {
+                                <span class="badge bg-light text-secondary border" style="font-size: 0.7rem; font-weight: bold;">⏱️ @gorev.TahminiSure.ToString("0.##") S</span>
+                            }
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted small fw-bold">💬 @gorev.YorumSayisi</span>
+                            @if (!bittiMi)
+                            {
+                                <button type="button" class="btn btn-sm btn-success fw-bold px-2 py-1 shadow-sm" onclick="gorevTamamla(event, @gorev.Id)" style="font-size: 0.75rem;">✔ Bitir</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+
+<div class="modal fade" id="yeniGorevModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content shadow border-0">
+            <form action="/Board/GorevEkle" method="post">
+                <div class="modal-header bg-light border-bottom-0">
+                    <h5 class="modal-title fw-bold">✨ Yeni Görev Oluştur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Görev Başlığı</label>
+                            <input type="text" name="Baslik" class="form-control" required />
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Açıklama</label>
+                            <textarea name="Aciklama" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-primary">📁 Bağlı Proje</label>
+                            <select name="ProjeId" id="yeniProjeSelect" class="form-select bg-light" onchange="sprintFiltrele('yeni')">
+                                <option value="">-- Projeden Bağımsız --</option>
+                                @if (projeListesi != null)
+                                {
+                                    foreach (var p in projeListesi)
+                                    {
+                                        <option value="@p.Value">@p.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-secondary">🏃 Sprint (Koşu)</label>
+                            <select name="SprintId" id="yeniSprintSelect" class="form-select bg-light">
+                                <option value="">-- Önce Proje Seçin --</option>
+                                @if (sprintListesi != null)
+                                {
+                                    foreach (var s in sprintListesi)
+                                    {
+                                        <option value="@s.Id" data-projeid="@s.ProjeId" style="display:none;">@s.Ad</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Sütun (Durum)</label>
+                            <select name="Durum" class="form-select bg-light" id="yeniGorevDurumSelect">
+                                @foreach (var s in ViewBag.Sutunlar)
+                                {
+                                    <option value="@s.KodAdi">@s.Ad</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-danger">Öncelik</label>
+                            <select name="Oncelik" class="form-select bg-light">
+                                <option value="Kritik">Kritik</option>
+                                <option value="Yüksek">Yüksek</option>
+                                <option value="Orta" selected>Orta</option>
+                                <option value="Düşük">Düşük</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-warning">Süre (Saat)</label>
+                            <input type="number" step="0.5" min="0" name="TahminiSure" class="form-control" value="0" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Teslim Tarihi</label>
+                            <input type="datetime-local" name="TeslimTarihi" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-success">Atanacak Personeller</label>
+                            <select name="AtananKullaniciIdleri" class="form-select" multiple size="3">
+                                @if (kullaniciListesi != null)
+                                {
+                                    foreach (var k in kullaniciListesi)
+                                    {
+                                        <option value="@k.Value">@k.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="duzenleGorevModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content shadow border-0">
+            <form action="/Board/GorevDuzenle" method="post">
+                <input type="hidden" name="Id" id="duzenleId" />
+                <div class="modal-header bg-light border-bottom-0">
+                    <h5 class="modal-title fw-bold">✏️ Görevi Düzenle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Görev Başlığı</label>
+                            <input type="text" name="Baslik" id="duzenleBaslik" class="form-control" required />
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Açıklama</label>
+                            <textarea name="Aciklama" id="duzenleAciklama" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-primary">📁 Bağlı Proje</label>
+                            <select name="ProjeId" id="duzenleProjeSelect" class="form-select bg-light" onchange="sprintFiltrele('duzenle')">
+                                <option value="">-- Projeden Bağımsız --</option>
+                                @if (projeListesi != null)
+                                {
+                                    foreach (var p in projeListesi)
+                                    {
+                                        <option value="@p.Value">@p.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-secondary">🏃 Sprint (Koşu)</label>
+                            <select name="SprintId" id="duzenleSprintSelect" class="form-select bg-light">
+                                <option value="">-- Önce Proje Seçin --</option>
+                                @if (sprintListesi != null)
+                                {
+                                    foreach (var s in sprintListesi)
+                                    {
+                                        <option value="@s.Id" data-projeid="@s.ProjeId" style="display:none;">@s.Ad</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Sütun (Durum)</label>
+                            <select name="Durum" id="duzenleDurum" class="form-select bg-light">
+                                @foreach (var s in ViewBag.Sutunlar)
+                                {
+                                    <option value="@s.KodAdi">@s.Ad</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-danger">Öncelik</label>
+                            <select name="Oncelik" id="duzenleOncelik" class="form-select bg-light">
+                                <option value="Kritik">Kritik</option>
+                                <option value="Yüksek">Yüksek</option>
+                                <option value="Orta">Orta</option>
+                                <option value="Düşük">Düşük</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-warning">Süre (Saat)</label>
+                            <input type="number" step="0.5" min="0" name="TahminiSure" id="duzenleSure" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Teslim Tarihi</label>
+                            <input type="datetime-local" name="TeslimTarihi" id="duzenleTeslim" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-success">Personeller</label>
+                            <select name="AtananKullaniciIdleri" id="duzenleAtanan" class="form-select" multiple size="3">
+                                @if (kullaniciListesi != null)
+                                {
+                                    foreach (var k in kullaniciListesi)
+                                    {
+                                        <option value="@k.Value">@k.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="submit" class="btn btn-warning px-4 fw-bold">Değişiklikleri Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="gorevDetayModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content shadow border-0" style="border-radius:12px;">
+            <div class="modal-header bg-light border-bottom-0">
+                <h5 class="modal-title fw-bold" id="detayBaslik">Görev Yükleniyor...</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted" id="detayAciklama"></p>
+                <div class="d-flex gap-2 mb-3">
+                    <span class="badge bg-light text-primary border" id="detayProje"></span>
+                    <span class="badge bg-light text-secondary border" id="detaySprint"></span>
+                </div>
+                <div class="d-flex gap-3 mb-4 border-bottom pb-3">
+                    <span class="badge bg-primary px-3 py-2" id="detayDurum"></span>
+                    <span class="badge bg-danger px-3 py-2" id="detayOncelik"></span>
+                </div>
+                <h6 class="fw-bold mb-3">💬 Yorumlar</h6>
+                <div id="yorumListesi" class="mb-3" style="max-height: 250px; overflow-y: auto; background:#f8fafc; border-radius:8px; padding:15px;"></div>
+                <div class="input-group">
+                    <input type="hidden" id="yorumGorevId" />
+                    <input type="text" id="yeniYorumMetni" class="form-control" placeholder="Bir yorum yazın..." />
+                    <button class="btn btn-primary fw-bold px-4" onclick="yorumYap()">Gönder</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="sutunModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-bottom-0"><h5 class="modal-title fw-bold">⚙️ Sütunları Düzenle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body p-4">
+                <ul class="list-group mb-4 shadow-sm" id="sutunListesi">
+                    @foreach (var sutun in ViewBag.Sutunlar as List<anbanBoardApp.Models.Sutun>)
+                    {
+                        string lockedClass = sutun.KilitliMi ? "locked" : "";
+                        <li class="list-group-item d-flex justify-content-between align-items-center sutun-item @lockedClass" data-id="@sutun.KodAdi">
+                            <div class="d-flex align-items-center gap-2"><span class="drag-handle" title="Sürükle">↕️</span><span class="fw-bold" style="color:@sutun.Renk;">● @sutun.Ad</span></div>
+                            <div><button class="btn btn-sm border-0 fs-5 text-dark" onclick="kilitDegistir(this)">@(sutun.KilitliMi ? "🔒" : "🔓")</button><button class="btn btn-sm btn-outline-danger border-0 delete-btn" onclick="sutunSil(this)" @(sutun.KilitliMi ? "disabled" : "")>🗑️</button></div>
+                        </li>
+                    }
+                </ul>
+                <h6 class="fw-bold mb-3">Yeni Sütun Ekle</h6>
+                <div class="input-group">
+                    <input type="text" id="yeniSutunAdi" class="form-control" placeholder="Sütun Adı">
+                    <input type="color" id="yeniSutunRengi" class="form-control form-control-color" value="#8b5cf6">
+                    <button class="btn btn-primary px-4 fw-bold" onclick="yeniSutunEkle()">Ekle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script>
+        
+        function sprintFiltrele(prefix) {
+            let projeId = document.getElementById(prefix + 'ProjeSelect').value;
+            let sprintSelect = document.getElementById(prefix + 'SprintSelect');
+            let options = sprintSelect.options;
+
+            for(let i=1; i < options.length; i++) { 
+                if (options[i].getAttribute('data-projeid') === projeId) {
+                    options[i].style.display = 'block';
+                } else {
+                    options[i].style.display = 'none';
+                }
+            }
+            sprintSelect.value = ""; 
+        }
+
+        function gorevTamamla(evt, id) {
+            evt.stopPropagation();
+            if(confirm('Görevi tamamlandı olarak işaretlemek istiyor musunuz?')) {
+                fetch('/Board/DurumGuncelle', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`gorevId=${id}&yeniDurum=Tamamlandi`})
+                .then(() => location.reload());
+            }
+        }
+
+        function sutunaSortableEkle(sutunId) {
+            let el = document.getElementById(sutunId);
+            if(el) {
+                let isTamamlandi = (sutunId === 'Tamamlandi');
+                new Sortable(el, {
+                    group: { name: 'kanban', put: true, pull: !isTamamlandi },
+                    animation: 150, draggable: '.kanban-card', filter: '.btn',
+                    onEnd: evt => {
+                        if(evt.from.id !== evt.to.id) {
+                            fetch('/Board/DurumGuncelle', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`gorevId=${evt.item.getAttribute('data-id')}&yeniDurum=${evt.to.id}`})
+                            .then(() => location.reload());
+                        }
+                    }
+                });
+            }
+        }
+        @foreach (var s in ViewBag.Sutunlar)
+        {
+            <text>sutunaSortableEkle('@s.KodAdi');</text>
+        }
+
+        function duzenleModalAc(btn) {
+            document.getElementById('duzenleId').value = btn.getAttribute('data-id');
+            document.getElementById('duzenleBaslik').value = btn.getAttribute('data-baslik');
+            document.getElementById('duzenleAciklama').value = btn.getAttribute('data-aciklama');
+            document.getElementById('duzenleDurum').value = btn.getAttribute('data-durum');
+            document.getElementById('duzenleOncelik').value = btn.getAttribute('data-oncelik');
+            document.getElementById('duzenleSure').value = btn.getAttribute('data-sure');
+            document.getElementById('duzenleTeslim').value = btn.getAttribute('data-teslim') || "";
+
+            
+            let pId = btn.getAttribute('data-projeid');
+            let sId = btn.getAttribute('data-sprintid');
+            document.getElementById('duzenleProjeSelect').value = pId || "";
+            sprintFiltrele('duzenle'); 
+            document.getElementById('duzenleSprintSelect').value = sId || "";
+
+            let atananlar = btn.getAttribute('data-atanan').split(',');
+            let selectBox = document.getElementById('duzenleAtanan');
+            for(let i=0; i<selectBox.options.length; i++) selectBox.options[i].selected = atananlar.includes(selectBox.options[i].value);
+
+            new bootstrap.Modal(document.getElementById('duzenleGorevModal')).show();
+        }
+
+        function gorevDetayAc(id) {
+            fetch('/Board/GorevDetay?id=' + id).then(r => r.json()).then(data => {
+                document.getElementById('detayBaslik').innerText = data.baslik;
+                document.getElementById('detayAciklama').innerText = data.aciklama || "Açıklama girilmemiş.";
+                document.getElementById('detayDurum').innerText = data.durum;
+                document.getElementById('detayOncelik').innerText = "Öncelik: " + data.oncelik;
+                document.getElementById('detayProje').innerText = "📁 " + data.proje;
+                document.getElementById('detaySprint').innerText = "🏃 " + data.sprint;
+                document.getElementById('yorumGorevId').value = data.id;
+
+                let html = '';
+                if (data.yorumlar.length === 0) html = "<div class='text-muted small'>Henüz yorum yapılmamış.</div>";
+                else data.yorumlar.forEach(y => html += `<div class="mb-2 p-2 bg-white border shadow-sm rounded"><div class="d-flex justify-content-between"><strong class="small text-primary">${y.kisi}</strong><small class="text-muted">${y.tarih}</small></div><div class="small mt-1">${y.metin}</div></div>`);
+                document.getElementById('yorumListesi').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('gorevDetayModal')).show();
+            });
+        }
+
+        function yorumYap() {
+            let metin = document.getElementById('yeniYorumMetni').value;
+            let gorevId = document.getElementById('yorumGorevId').value;
+            if(!metin.trim()) return;
+            fetch('/Board/YorumEkleAjax', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`gorevId=${gorevId}&yorumMetni=${encodeURIComponent(metin)}`})
+            .then(() => { document.getElementById('yeniYorumMetni').value = ''; gorevDetayAc(gorevId); });
+        }
+
+        // Modal Diğer Fonksiyonlar (Kilit, Sil, Yeni Sütun)
+        function kilitDegistir(btn) {
+            let satir = btn.closest('.sutun-item'); let isLocked = satir.classList.contains('locked'); let deleteBtn = satir.querySelector('.delete-btn');
+            if (isLocked) { satir.classList.remove('locked'); btn.innerText = '🔓'; deleteBtn.disabled = false; }
+            else { satir.classList.add('locked'); btn.innerText = '🔒'; deleteBtn.disabled = true; }
+        }
+        new Sortable(document.getElementById('sutunListesi'), {
+            handle: '.drag-handle', animation: 150, filter: '.locked',
+            onMove: function (evt) { return evt.related.className.indexOf('locked') === -1; },
+            onEnd: function () {
+                let container = document.querySelector('.kanban-container');
+                document.querySelectorAll('#sutunListesi .sutun-item').forEach(item => {
+                    let col = document.getElementById(item.getAttribute('data-id')); if(col) container.appendChild(col);
+                });
+            }
+        });
+        function sutunSil(btn) {
+            if(confirm('Emin misiniz?')) {
+                let li = btn.closest('.sutun-item'); let id = li.getAttribute('data-id');
+                li.remove(); let col = document.getElementById(id); if(col) col.remove();
+                let opt = document.querySelector(`#yeniGorevDurumSelect option[value="${id}"]`); if(opt) opt.remove();
+            }
+        }
+        function yeniSutunEkle() {
+            let ad = document.getElementById('yeniSutunAdi').value.trim(); let renk = document.getElementById('yeniSutunRengi').value;
+            if(!ad) return; let kodAdi = ad.replace(/\s+/g, '');
+            let li = document.createElement('li'); li.className = 'list-group-item d-flex justify-content-between align-items-center sutun-item'; li.setAttribute('data-id', kodAdi);
+            li.innerHTML = `<div class="d-flex align-items-center gap-2"><span class="drag-handle">↕️</span><span class="fw-bold" style="color:${renk}">● ${ad}</span></div><div><button class="btn btn-sm border-0 fs-5 text-dark" onclick="kilitDegistir(this)">🔓</button><button class="btn btn-sm btn-outline-danger border-0 delete-btn" onclick="sutunSil(this)">🗑️</button></div>`;
+            document.getElementById('sutunListesi').appendChild(li);
+            let col = document.createElement('div'); col.className = 'kanban-column'; col.id = kodAdi; col.style.borderTop = `4px solid ${renk}`;
+            col.innerHTML = `<div class="col-title"><span><span style="color:${renk};">●</span> ${ad}</span> <span class="badge bg-light text-dark border rounded-pill">0</span></div>`;
+            document.querySelector('.kanban-container').appendChild(col);
+            sutunaSortableEkle(kodAdi);
+            let opt = document.createElement('option'); opt.value = kodAdi; opt.text = ad; document.getElementById('yeniGorevDurumSelect').appendChild(opt);
+            document.getElementById('yeniSutunAdi').value = '';
+        }
+    </script>
+}

@@ -1,0 +1,83 @@
+﻿@model List<anbanBoardApp.Models.Kullanici>
+@{
+    ViewData["Title"] = "Kullanıcılar";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="text-muted small">
+        Sistemde kayıtlı @Model.Count kullanıcı bulunuyor.
+    </div>
+    <button class="btn btn-primary btn-sm fw-bold px-4" data-bs-toggle="modal" data-bs-target="#yeniPersonelModal">
+        + Yeni Kullanıcı Ekle
+    </button>
+</div>
+
+<div class="row">
+    @foreach (var personel in Model)
+    {
+        
+        string basHarf = !string.IsNullOrEmpty(personel.AdSoyad) && personel.AdSoyad.Length > 0 
+                         ? personel.AdSoyad.Substring(0, 1).ToUpper() 
+                         : "👤";
+
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; transition: transform 0.2s;">
+                <div class="card-body p-4 text-center">
+                    <div class="rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow-sm" style="width: 60px; height: 60px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; font-size: 1.5rem; font-weight: bold;">
+                        @basHarf
+                    </div>
+                    
+                    <h5 class="fw-bold text-dark mb-1">@(string.IsNullOrEmpty(personel.AdSoyad) ? "İsimsiz Kullanıcı" : personel.AdSoyad)</h5>
+                    <p class="text-muted small mb-3" style="font-size: 0.85rem;">@(string.IsNullOrEmpty(personel.Email) ? "E-Posta Yok" : personel.Email)</p>
+                    <span class="badge bg-light text-primary border rounded-pill px-3 py-2">@personel.Rol</span>
+                </div>
+                
+                <div class="card-footer bg-white border-top text-center p-2" style="border-radius: 0 0 12px 12px;">
+                    <form action="/Board/PersonelSil" method="post" onsubmit="return confirm('Bu kullanıcıyı sistemden tamamen silmek istediğinize emin misiniz?');">
+                        <input type="hidden" name="id" value="@personel.Id" />
+                        <button type="submit" class="btn btn-sm text-danger fw-bold border-0 p-2">Kullanıcıyı Sil 🗑️</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
+<div class="modal fade" id="yeniPersonelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content shadow border-0" style="border-radius: 12px;">
+            <form action="/Board/PersonelEkle" method="post">
+                <div class="modal-header bg-light border-bottom-0" style="border-radius: 12px 12px 0 0;">
+                    <h5 class="modal-title fw-bold">👥 Yeni Kullanıcı Ekle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ad Soyad</label>
+                        <input type="text" name="AdSoyad" class="form-control" placeholder="Örn: Ahmet Yılmaz" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">E-Posta Adresi</label>
+                        <input type="email" name="Email" class="form-control" placeholder="Örn: ahmet@secgate.com" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-primary">Sistem Rolü</label>
+                        <select name="Rol" class="form-select bg-light">
+                            <option value="Proje Yöneticisi">Proje Yöneticisi</option>
+                            <option value="Proje Müdürü">Proje Müdürü</option>
+                            <option value="Yazılım Geliştirici">Yazılım Geliştirici</option>
+                            <option value="Siber Güvenlik Uzmanı">Siber Güvenlik Uzmanı</option>
+                            <option value="Tasarımcı">Tasarımcı</option>
+                            <option value="Çalışan">Çalışan</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 bg-light" style="border-radius: 0 0 12px 12px;">
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Kullanıcıyı Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

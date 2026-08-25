@@ -1,0 +1,27 @@
+﻿@{ ViewData["Title"] = "Sistem Ayarları"; }
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+            <div class="card-body p-4">
+                <h5 class="fw-bold border-bottom pb-2 mb-4 text-dark">👤 Profil Bilgileri</h5>
+                <div class="mb-3"><label class="text-muted small fw-bold">Ad Soyad</label><input type="text" class="form-control bg-light border-0 text-dark" value="Furkan Sezgin" readonly></div>
+                <div class="mb-3"><label class="text-muted small fw-bold">E-Posta</label><input type="text" class="form-control bg-light border-0 text-dark" value="iletisim@secgate.com" readonly></div>
+                <div class="mb-3"><label class="text-muted small fw-bold">Sistem Rolü</label><input type="text" class="form-control bg-light border-0 text-dark" value="Proje Yöneticisi" readonly></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+            <div class="card-body p-4">
+                <h5 class="fw-bold border-bottom pb-2 mb-4 text-dark">⚙️ Uygulama Tercihleri</h5>
+                <p class="text-muted small mb-4">Sistem teması (Gece/Gündüz Modu) artık üst menüdeki güneş/ay ikonundan tüm sayfalarda anlık olarak değiştirilebilmektedir.</p>
+                <div class="form-check form-switch mb-3" style="font-size: 1.1rem;">
+                    <input class="form-check-input" type="checkbox" id="notif" checked disabled>
+                    <label class="form-check-label fw-bold text-dark ms-2" for="notif">📧 E-Posta Bildirimleri (Açık)</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

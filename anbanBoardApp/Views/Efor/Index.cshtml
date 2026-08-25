@@ -1,0 +1,96 @@
+﻿@model List<anbanBoardApp.Models.Gorev>
+@{ 
+    ViewData["Title"] = "Efor Takibi ve Raporlama"; 
+    decimal toplamEfor = Model.Sum(g => g.EforSaati); 
+    decimal toplamTahmini = Model.Sum(g => g.TahminiSure); 
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="text-muted small">Tüm zamanların çalışma raporu</div>
+    
+    
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-success fw-bold shadow-sm" onclick="exportTableToCSV('Efor_Raporu.csv')">
+            📊 Excel (CSV) İndir
+        </button>
+        <button class="btn btn-outline-danger fw-bold shadow-sm" onclick="window.print()">
+            📄 PDF / Yazdır
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm" style="border-radius: 12px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white;">
+            <div class="card-body p-4 text-center">
+                <h6 class="text-white-50 fw-bold">TOPLAM HARCANAN EFOR</h6>
+                <h1 class="fw-bold mb-0 display-4">@toplamEfor.ToString("0.0") <small style="font-size: 1rem;">Saat</small></h1>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+            <div class="card-body p-4 text-center">
+                <h6 class="text-muted fw-bold">HEDEFLENEN (TAHMİNİ) SÜRE</h6>
+                <h1 class="fw-bold mb-0 display-4 text-dark">@toplamTahmini.ToString("0.0") <small style="font-size: 1rem;">Saat</small></h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+    <div class="card-body p-0">
+       
+        <table class="table table-hover mb-0 text-center align-middle" id="raporTablosu">
+            <thead class="bg-light">
+                <tr>
+                    <th class="text-start ps-4">Görev Başlığı</th>
+                    <th>Durum</th>
+                    <th>Verilen Süre (Saat)</th>
+                    <th>Harcanan (Saat)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var gorev in Model) {
+                    <tr>
+                        <td class="text-start ps-4 fw-bold text-dark">@gorev.Baslik</td>
+                        <td><span class="badge bg-light text-secondary border">@gorev.Durum</span></td>
+                        <td class="fw-bold text-secondary">@gorev.TahminiSure.ToString("0.0")</td>
+                        <td class="fw-bold @(gorev.EforSaati > gorev.TahminiSure ? "text-danger" : "text-success")">
+                            @gorev.EforSaati.ToString("0.0")
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function exportTableToCSV(filename) {
+            var csv = [];
+            var bom = "\uFEFF"; 
+            
+            var rows = document.querySelectorAll("#raporTablosu tr");
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = [], cols = rows[i].querySelectorAll("td, th");
+                
+                for (var j = 0; j < cols.length; j++) {
+                    row.push('"' + cols[j].innerText.replace(/"/g, '""').trim() + '"');
+                }
+                csv.push(row.join(";"));        
+            }
+
+            var csvFile = new Blob([bom + csv.join("\n")], {type: "text/csv;charset=utf-8;"});
+            var downloadLink = document.createElement("a");
+            downloadLink.download = filename;
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    </script>
+}

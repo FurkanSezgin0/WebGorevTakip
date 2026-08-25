@@ -1,0 +1,147 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Görev Takip Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body { background-color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; transition: background-color 0.3s, color 0.3s; }
+        
+        #sidebar { min-width: 260px; max-width: 260px; min-height: 100vh; background-color: #0f172a; color: #fff; display: flex; flex-direction: column; border-right: 1px solid #1e293b; z-index: 1000; }
+        #sidebar .sidebar-header { padding: 25px 20px; background: #0f172a; border-bottom: 2px solid transparent; border-image: linear-gradient(to right, #3b82f6, #8b5cf6) 1; }
+        #sidebar ul.components { padding: 20px 0; flex-grow: 1; }
+        #sidebar ul li a { padding: 12px 25px; font-size: 1.05em; display: block; color: #94a3b8; text-decoration: none; transition: all 0.3s ease; font-weight: 500; }
+        #sidebar ul li a:hover, #sidebar ul li.active > a { color: #fff; background: #1e293b; border-left: 4px solid #8b5cf6; transform: translateX(5px); }
+        
+        #content { width: 100%; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
+        .top-navbar { background: #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 15px 30px; border-bottom: 1px solid #e2e8f0; transition: background-color 0.3s; }
+        .wrapper { display: flex; width: 100%; align-items: stretch; }
+
+        
+        body.dark-mode { background-color: #0b1120; color: #f8fafc; }
+        .dark-mode .top-navbar { background-color: #1e293b !important; border-bottom: 1px solid #334155; }
+        .dark-mode .top-navbar h4 { color: #f8fafc !important; }
+        
+        
+        .dark-mode .card, .dark-mode .kanban-column { background-color: #1e293b !important; border-color: #334155 !important; color: #f8fafc !important; }
+        .dark-mode .kanban-card { background-color: #0f172a !important; border-color: #334155 !important; }
+        
+        .dark-mode .text-dark { color: #f8fafc !important; }
+        .dark-mode .kanban-card h6 { color: #f8fafc !important; }
+        .dark-mode .col-title { color: #f8fafc !important; }
+        .dark-mode .text-muted { color: #94a3b8 !important; }
+        
+        .dark-mode .btn-light { background-color: #334155 !important; border-color: #475569 !important; color: #f8fafc !important; }
+        .dark-mode .bg-light { background-color: #1e293b !important; color: #f8fafc !important; }
+        .dark-mode .form-control, .dark-mode .form-select { background-color: #0f172a !important; color: #f8fafc !important; border-color: #334155 !important; }
+        
+        .dark-mode .modal-content { background-color: #1e293b; color: #f8fafc; border-color: #334155; }
+        .dark-mode .modal-header, .dark-mode .modal-footer { background-color: #0f172a !important; border-color: #334155 !important; }
+        .dark-mode .table { color: #f8fafc; }
+        .dark-mode .table thead th { background-color: #0f172a; color: #f8fafc; border-bottom: 1px solid #334155; }
+        .dark-mode .table td { border-color: #334155; color: #f8fafc !important; background-color: #1e293b; }
+        .dark-mode .table-hover tbody tr:hover td { background-color: #334155; }
+        
+        .dark-mode .dropdown-menu { background-color: #1e293b !important; border-color: #334155 !important; }
+        .dark-mode .dropdown-menu .dropdown-item { color: #f8fafc !important; }
+        .dark-mode .dropdown-menu .dropdown-item:hover { background-color: #334155 !important; }
+        .dark-mode .dropdown-divider { border-color: #475569 !important; }
+        .dark-mode .dropdown-header { color: #94a3b8 !important; }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <h5 class="mb-0 fw-bold text-white">🚀 Görev Takip <br /><span style="color: #8b5cf6; font-size: 0.9em;">Sistemi</span></h5>
+            </div>
+            <ul class="list-unstyled components" id="sidebar-menu">
+                <li><a href="/Dashboard/Index">📊 Kontrol Paneli</a></li>
+                <li><a href="/Projeler/Index">📁 Projeler</a></li>
+                <li><a href="/Sprintler/Index">🏃 Sprintler</a></li>
+                <li><a href="/Board/Index">📋 Görevler</a></li>
+                <li><a href="/Efor/Index">⏱️ Efor Takibi</a></li>
+                <li><a href="/Board/Personel">👥 Kullanıcılar</a></li>
+                <li><a href="/Ayarlar/Index">⚙️ Ayarlar</a></li>
+            </ul>
+            <div class="mt-auto p-3" style="background: #0b1120; border-top: 1px solid #1e293b;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex justify-content-center align-items-center" style="width: 40px; height: 40px; font-weight: bold; background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white;">FS</div>
+                    <div>
+                        <strong class="d-block text-white" style="font-size: 0.9em;">Furkan Sezgin</strong>
+                        <small style="font-size: 0.8em; color: #94a3b8;">Proje Yöneticisi</small>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div id="content">
+            <nav class="top-navbar d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0 text-dark fw-bold">@ViewData["Title"]</h4>
+                
+                <div class="d-flex align-items-center gap-3">
+                    <input type="text" class="form-control form-control-sm bg-light border-0" placeholder="🔍 Görev ara... (/)" style="width: 250px; padding: 8px 15px; border-radius: 20px;">
+                    
+                    <button class="btn btn-light rounded-circle border-0 bg-light p-2 d-flex justify-content-center align-items-center" onclick="toggleDarkModeGlobal()" style="width: 40px; height: 40px;" title="Gece/Gündüz Modu">
+                        <span id="themeIcon" style="display:inline-block; width:18px; height:18px; border-radius:50%; background-color:#fbbf24; box-shadow: 0 0 6px #fbbf24; transition: all 0.3s;"></span>
+                    </button>
+
+                    <div class="dropdown">
+                        <button class="btn btn-light rounded-circle border-0 bg-light p-2 position-relative" type="button" id="notifDropdown" data-bs-toggle="dropdown">
+                            🔔 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">3</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="notifDropdown" style="width: 320px; border-radius: 12px;">
+                            <li><h6 class="dropdown-header fw-bold text-dark fs-6">Bildirimler</h6></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item small py-2" href="#">🚀 <strong>Sistem:</strong> Hoş geldiniz Furkan Bey!</a></li>
+                            <li><a class="dropdown-item small py-2" href="#">⏱️ <strong>Sistem:</strong> Raporlama modülleri aktif edildi.</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container-fluid px-4">
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function updateThemeIcon(isDark) {
+            let icon = document.getElementById('themeIcon');
+            if (isDark) {
+                icon.style.backgroundColor = '#f8fafc';
+                icon.style.boxShadow = '0 0 8px #f8fafc';
+            } else {
+                icon.style.backgroundColor = '#fbbf24';
+                icon.style.boxShadow = '0 0 8px #fbbf24';
+            }
+        }
+
+        function toggleDarkModeGlobal() {
+            let isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+            updateThemeIcon(isDark);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            let currentUrl = window.location.pathname.toLowerCase();
+            if (currentUrl === "/" || currentUrl === "") currentUrl = "/board/index";
+            let menuItems = document.querySelectorAll("#sidebar-menu li a");
+            menuItems.forEach(function (item) {
+                let itemUrl = item.getAttribute("href");
+                if (itemUrl && itemUrl !== "#" && currentUrl.includes(itemUrl.toLowerCase())) {
+                    item.parentElement.classList.add("active");
+                }
+            });
+
+            let isDark = localStorage.getItem('darkMode') === 'enabled';
+            if (isDark) document.body.classList.add('dark-mode');
+            updateThemeIcon(isDark);
+        });
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
